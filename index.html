@@ -28,6 +28,8 @@ body{margin:0;height:100%;overflow:hidden;background:radial-gradient(ellipse at 
 #note i{display:block;margin:14px auto 0;width:46px;height:1px;background:var(--ink);opacity:.45}
 #title{position:fixed;left:0;right:0;top:0;transform:translateY(-50%);z-index:1;text-align:center;color:var(--ink);font-style:italic;font-weight:500;font-size:clamp(1.7rem,8.5vw,2.6rem);pointer-events:none;opacity:0;animation:tin 1.2s .3s ease forwards;text-shadow:0 0 28px rgba(220,40,70,.3)}
 @keyframes tin{to{opacity:1}}
+#title small{display:block;margin-top:.3em;font-size:.4em;letter-spacing:.16em;opacity:.7;font-variant-numeric:lining-nums}
+@media (orientation:landscape) and (max-height:480px){#title{font-size:clamp(1.5rem,4.5vw,1.9rem)}#title small{display:inline;margin:0 0 0 .8em}}
 #note .ht{will-change:transform,opacity;display:block;width:calc(var(--u,380px)*.06);margin:calc(var(--u,380px)*.035) auto 0;opacity:0;transform:scale(.6);transition:opacity .8s,transform .8s}
 #note.fin .ht{opacity:1;transform:scale(1);animation:beat 1.3s .9s ease-in-out infinite}
 #note::before{content:'';position:absolute;left:-18%;right:-18%;top:-12%;bottom:-12%;z-index:-1;pointer-events:none;opacity:0;will-change:opacity;background:radial-gradient(ellipse at center,rgba(255,70,100,.34),rgba(255,70,100,0) 66%)}
@@ -60,7 +62,7 @@ body{margin:0;height:100%;overflow:hidden;background:radial-gradient(ellipse at 
 </style>
 </head>
 <body>
-<div id="title">Işıl’a Bir Not</div>
+<div id="title">Işıl’a Bir Not<small>29.10.2026</small></div>
 <div id="note"><p>Egemenlik kayıtsız şartsız milletindir,</p><svg class="ht" viewBox="0 0 24 22" aria-hidden="true"><path d="M12 21C-4 9 3-2 12 5.5 21-2 28 9 12 21Z" fill="#d11f3a"/></svg><p class="l2"><span>ama bu kalp tamamen senindir.</span></p><p class="l3"><span>Kalbimin ortasında bu nasıl bir cumhuriyet?</span></p><span class="anc" id="anc"></span></div>
 <canvas id="c"></canvas>
 <div id="hint">kurdeleye dokun</div>
@@ -420,7 +422,7 @@ function resize(){
   note.style.top=(H/2-.02*U)+'px';
   fitNote();
   buildSprites();
-  ttl.style.top=Math.max(pb+34,H/2-.02*U-.53*U-30)+'px';
+  ttl.style.top=Math.max(pb+46,H/2-.02*U-.53*U-44)+'px';
 }
 window.addEventListener('resize',resize);
 function askTilt(){

@@ -68,7 +68,7 @@ body{margin:0;height:100%;overflow:hidden;background:radial-gradient(ellipse at 
 <div id="hint">kurdeleye dokun</div>
 <button id="btn" type="button">Yeniden topla</button>
 <button id="snd" type="button" aria-label="Ses">♪</button>
-<button id="listen" type="button">Dinle</button>
+<button id="listen" type="button">Duraklat</button>
 <div id="sig">Can’dan</div>
 <script>
 /* ŞARKI AYARI: mp3 dosya adı (ör. 'sarki.mp3') YA DA yt bağlantısı yaz; start = başlangıç saniyesi. İkisi de boşsa Dinle düğmesi görünmez. */
@@ -76,7 +76,7 @@ var SONG={mp3:'sarki.mp3',yt:'',start:0};
 (function(){
 var cv=document.getElementById('c'),ctx=cv.getContext('2d'),note=document.getElementById('note'),hint=document.getElementById('hint'),btn=document.getElementById('btn'),ttl=document.getElementById('title'),sndBtn=document.getElementById('snd'),lbtn=document.getElementById('listen'),anc=document.getElementById('anc');
 var rm=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
-var W,H,U,dpr,floorPad=0,relN=0,lastOp=-1,lastBtn=false,TAU=Math.PI*2,TX=0,TY=0,PX=0,PY=0,QX=0,QY=0,FS=.72,tiltOn=false,opened=false,finDone=false,rain=0,rainAcc=0,pi=3,AC=null,snd=true,NB=null,lastBounce=0,songOn=false,au=null,poofed=false,pn=0;
+var W,H,U,dpr,floorPad=0,relN=0,lastOp=-1,lastBtn=false,TAU=Math.PI*2,TX=0,TY=0,PX=0,PY=0,QX=0,QY=0,FS=.72,tiltOn=false,opened=false,finDone=false,rain=0,rainAcc=0,pi=3,AC=null,snd=true,NB=null,lastBounce=0,songOn=false,au=null,auUnlocked=false,poofed=false,pn=0;
 
 /* ---------- sprites ---------- */
 function mk(f){var c=document.createElement('canvas');c.width=c.height=280;var g=c.getContext('2d');g.translate(140,140);f(g);return c;}
@@ -275,7 +275,10 @@ function step(now){
   if(fr>=RN&&!finDone){finDone=true;finale();}
   if(fr>=10&&!poofed){poofed=true;pn=0;var pr=0;B.forEach(function(b){if((b.k=='leaf'||b.k=='bow')&&b.st==0)b.poofAt=now+.2+(pn++)*.12;else if(isRose(b)&&b.st==0)b.autoAt=now+.5+(pr++)*.15;});}
   if(fr<3)poofed=false;
-  if(fr<3&&finDone){finDone=false;note.classList.remove('fin');rain=0;lbtn.classList.remove('show');}
+  if(fr<3&&finDone){
+    finDone=false;note.classList.remove('fin');rain=0;lbtn.classList.remove('show');
+    if(au&&!au.paused){au.pause();songOn=false;lbtn.textContent='Devam et';}
+  }
   if(rain>0){rain-=dt;rainAcc+=dt*14;while(rainAcc>=1){rainAcc--;rainPetal();}}
   if(hasSong&&finDone)placeBtn();
   var op=Math.min(1,fr/10);
@@ -348,17 +351,57 @@ function placeBtn(){
   var r=anc.getBoundingClientRect();
   lbtn.style.left=(r.left+r.width/2)+'px';lbtn.style.top=(r.top+r.height/2)+'px';
 }
+function initAudio(){
+  if(!SONG.mp3||auUnlocked)return;
+  if(!au){
+    au=new Audio(SONG.mp3);
+    au.preload='auto';
+    au.addEventListener('ended',function(){songOn=false;lbtn.textContent='Tekrar dinle';});
+  }
+  /* Mobil tarayıcılarda otomatik oynatma kilidini açmak için ilk dokunuşta sessizce başlatıp durduruyoruz */
+  au.muted=true;
+  var p=au.play();
+  if(p&&p.then){
+    p.then(function(){
+      au.pause();
+      au.muted=!snd;
+      au.currentTime=SONG.start||0;
+      auUnlocked=true;
+    }).catch(function(){au.muted=!snd;});
+  }else{
+    au.pause();
+    au.muted=!snd;
+    auUnlocked=true;
+  }
+}
+function startSongAuto(){
+  if(!SONG.mp3)return;
+  if(!au){
+    au=new Audio(SONG.mp3);
+    au.addEventListener('ended',function(){songOn=false;lbtn.textContent='Tekrar dinle';});
+  }
+  au.muted=!snd;
+  if(au.paused){
+    if(SONG.start&&au.currentTime===0){try{au.currentTime=SONG.start;}catch(e){}}
+    songOn=true;lbtn.textContent='Duraklat';
+    var pr=au.play();
+    if(pr&&pr.catch)pr.catch(function(){songOn=false;lbtn.textContent='Dinle';});
+  }
+}
 function toggleSong(){
   ac();
   if(SONG.mp3){
     if(!au){
-      au=new Audio(SONG.mp3+(SONG.start?'#t='+SONG.start:''));
-      au.addEventListener('ended',function(){songOn=false;lbtn.textContent='Dinle';});
+      au=new Audio(SONG.mp3);
+      au.addEventListener('ended',function(){songOn=false;lbtn.textContent='Tekrar dinle';});
     }
+    au.muted=!snd;
     if(au.paused){
       songOn=true;lbtn.textContent='Duraklat';
-      var pr=au.play();if(pr&&pr.catch)pr.catch(function(){songOn=false;lbtn.textContent='Dinle';});
-    }else{au.pause();songOn=false;lbtn.textContent='Dinle';}
+      var pr=au.play();if(pr&&pr.catch)pr.catch(function(){songOn=false;lbtn.textContent='Devam et';});
+    }else{
+      au.pause();songOn=false;lbtn.textContent='Devam et';
+    }
   }else if(SONG.yt){
     window.open(SONG.yt,'_blank','noopener');
   }
@@ -383,14 +426,21 @@ function finale(){
   setTimeout(function(){
     if(!finDone)return;
     note.classList.add('fin');rain=6;finaleSound();
-    setTimeout(function(){if(finDone&&hasSong){placeBtn();lbtn.classList.add('show');}},5400);
+    /* 4600ms: "Kalbimin ortasında bu nasıl bir cumhuriyet?" yazısı belirdiği an müziği başlat ve Duraklat/Devam et butonunu göster */
+    setTimeout(function(){
+      if(finDone&&hasSong){
+        startSongAuto();
+        placeBtn();
+        lbtn.classList.add('show');
+      }
+    },4600);
   },600);
 }
 
 /* ---------- input ---------- */
 cv.addEventListener('pointerdown',function(e){
   var x=e.clientX,y=e.clientY,now=performance.now()/1000;
-  ac();
+  ac();initAudio();
   if(!opened){openUp(now);return;}
   var order=B.slice().sort(function(a,b){return(a.st==1?10+a.rel:a.z)-(b.st==1?10+b.rel:b.z);});
   for(var i=order.length-1;i>=0;i--){
@@ -398,51 +448,4 @@ cv.addEventListener('pointerdown',function(e){
     if(b.st==3)continue;
     if(b.st==2&&now<b.t0+.9)continue;
     var dx=x-b.x,dy=y-b.y;
-    if(Math.sqrt(dx*dx+dy*dy)<=b.r*U*.95*b.fs){launch(b,x,y);hint.classList.add('off');break;}
-  }
-});
-btn.addEventListener('click',function(){
-  var now=performance.now()/1000,n=0;
-  ac();regSound();
-  B.forEach(function(b){
-    b.poofAt=0;b.autoAt=0;
-    if(b.st==3||(b.st==1&&b.al<1)){b.st=0;b.al=1;b.age=0;b.fs=1;b.sc=0;b.born=now+.5+(n++)*.03;}
-    else if(b.st!=0){b.sx=b.x;b.sy=b.y;b.sa=b.ang;b.vx=b.vy=0;b.st=2;b.t0=now+(n++)*.035;b.age=0;b.al=1;}
-  });
-});
-
-function resize(){
-  dpr=Math.min(window.devicePixelRatio||1,2);
-  W=window.innerWidth;H=window.innerHeight;
-  cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);
-  U=Math.min(W*.98,H*.72);
-  var pb=parseFloat(getComputedStyle(document.documentElement).paddingBottom)||0;
-  floorPad=pb+66;
-  document.documentElement.style.setProperty('--u',U+'px');
-  note.style.top=(H/2-.02*U)+'px';
-  fitNote();
-  buildSprites();
-  ttl.style.top=Math.max(pb+46,H/2-.02*U-.53*U-44)+'px';
-}
-window.addEventListener('resize',resize);
-function askTilt(){
-  if(tiltOn)return;tiltOn=true;
-  var D=window.DeviceOrientationEvent;
-  if(D&&typeof D.requestPermission==='function'){
-    D.requestPermission().then(function(r){if(r!=='granted')tiltOn=false;}).catch(function(){tiltOn=false;});
-  }
-}
-cv.addEventListener('click',askTilt);
-cv.addEventListener('click',ac);
-cv.addEventListener('touchend',ac,{passive:true});
-sndBtn.addEventListener('click',function(){ac();snd=!snd;sndBtn.classList.toggle('off',!snd);});
-btn.addEventListener('click',askTilt);
-window.addEventListener('pointermove',function(e){QX=(e.clientX/W-.5)*2;QY=(e.clientY/H-.5)*2;});
-window.addEventListener('deviceorientation',function(e){if(e.gamma!=null&&e.beta!=null){QX=Math.max(-1,Math.min(1,e.gamma/30));QY=Math.max(-1,Math.min(1,(e.beta-45)/30));}});
-resize();
-if(document.fonts&&document.fonts.ready)document.fonts.ready.then(resize);
-requestAnimationFrame(function(){last=performance.now()/1000;step(last);});
-})();
-</script>
-</body>
-</html>
+    if(Math.sqrt(dx*dx+dy*dy)<=b.r*U*.95*b.fs){launch(b,x,y);hint.class

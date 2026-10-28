@@ -448,4 +448,51 @@ cv.addEventListener('pointerdown',function(e){
     if(b.st==3)continue;
     if(b.st==2&&now<b.t0+.9)continue;
     var dx=x-b.x,dy=y-b.y;
-    if(Math.sqrt(dx*dx+dy*dy)<=b.r*U*.95*b.fs){launch(b,x,y);hint.class
+    if(Math.sqrt(dx*dx+dy*dy)<=b.r*U*.95*b.fs){launch(b,x,y);hint.classList.add('off');break;}
+  }
+});
+btn.addEventListener('click',function(){
+  var now=performance.now()/1000,n=0;
+  ac();regSound();
+  B.forEach(function(b){
+    b.poofAt=0;b.autoAt=0;
+    if(b.st==3||(b.st==1&&b.al<1)){b.st=0;b.al=1;b.age=0;b.fs=1;b.sc=0;b.born=now+.5+(n++)*.03;}
+    else if(b.st!=0){b.sx=b.x;b.sy=b.y;b.sa=b.ang;b.vx=b.vy=0;b.st=2;b.t0=now+(n++)*.035;b.age=0;b.al=1;}
+  });
+});
+
+function resize(){
+  dpr=Math.min(window.devicePixelRatio||1,2);
+  W=window.innerWidth;H=window.innerHeight;
+  cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);
+  U=Math.min(W*.98,H*.72);
+  var pb=parseFloat(getComputedStyle(document.documentElement).paddingBottom)||0;
+  floorPad=pb+66;
+  document.documentElement.style.setProperty('--u',U+'px');
+  note.style.top=(H/2-.02*U)+'px';
+  fitNote();
+  buildSprites();
+  ttl.style.top=Math.max(pb+46,H/2-.02*U-.53*U-44)+'px';
+}
+window.addEventListener('resize',resize);
+function askTilt(){
+  if(tiltOn)return;tiltOn=true;
+  var D=window.DeviceOrientationEvent;
+  if(D&&typeof D.requestPermission==='function'){
+    D.requestPermission().then(function(r){if(r!=='granted')tiltOn=false;}).catch(function(){tiltOn=false;});
+  }
+}
+cv.addEventListener('click',askTilt);
+cv.addEventListener('click',ac);
+cv.addEventListener('touchend',ac,{passive:true});
+sndBtn.addEventListener('click',function(){ac();snd=!snd;sndBtn.classList.toggle('off',!snd);if(au)au.muted=!snd;});
+btn.addEventListener('click',askTilt);
+window.addEventListener('pointermove',function(e){QX=(e.clientX/W-.5)*2;QY=(e.clientY/H-.5)*2;});
+window.addEventListener('deviceorientation',function(e){if(e.gamma!=null&&e.beta!=null){QX=Math.max(-1,Math.min(1,e.gamma/30));QY=Math.max(-1,Math.min(1,(e.beta-45)/30));}});
+resize();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(resize);
+requestAnimationFrame(function(){last=performance.now()/1000;step(last);});
+})();
+</script>
+</body>
+</html>
